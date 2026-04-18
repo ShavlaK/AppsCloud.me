@@ -1,0 +1,11 @@
+{
+  "source_bot_token": "YOUR_SOURCE_BOT_TOKEN_HERE",
+  "channel_bot_token": "YOUR_CHANNEL_BOT_TOKEN_HERE",
+  "channel_id": "@your_channel_username",
+  "markup_percent": 15,
+  "update_interval_hours": 1,
+  "database_path": "data/prices.db",
+  "logs_path": "logs/app.log",
+  "web_host": "0.0.0.0",
+  "web_port": 8080
+}
