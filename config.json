@@ -1,0 +1,39 @@
+{
+    "mode": "manual",
+    "source_bot_token": "ВАШ_ТОКЕН_БОТА_ИСТОЧНИКА",
+    "your_bot_token": "ВАШ_ТОКЕН_БОТА_ДЛЯ_КАНАЛА",
+    "channel_id": "@freezone_rnd",
+    "price_markup": 100,
+    "schedule": {
+        "start_hour": 11,
+        "start_minute": 30,
+        "end_hour": 19,
+        "end_minute": 30,
+        "interval_hours": 1
+    },
+    "price_message_id": null,
+
+    "excel": {
+        "file_path": "Price Excel/Все товары.xlsx",
+        "column_name": "Название",
+        "column_price": "Цена",
+        "header_row": 1
+    },
+
+    "user_api": {
+        "enabled": false,
+        "user_api_id": 123456,
+        "user_api_hash": "ваш_api_hash",
+        "user_phone": "+79001234567",
+        "source_bot_username": "source_bot",
+        "user_session_name": "user_session",
+        "navigation_chain": [
+            {"text": "Apple", "wait": 2},
+            {"text": "Смартфоны", "wait": 3},
+            {"text": "Показать прайс", "wait": 5}
+        ],
+        "message_count": 5,
+        "start_keyword": "Прайс-лист",
+        "end_keyword": "Итого"
+    }
+}
