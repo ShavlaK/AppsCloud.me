@@ -63,26 +63,33 @@ fi
 # Сборка через PyInstaller
 echo "[INFO] Запуск сборки PyInstaller..."
 
-# Проверка наличия директорий для сборки
-if [ -d "static" ]; then
-    STATIC_OPT="--add-data \"static:static\""
-else
-    STATIC_OPT=""
+# Формируем параметры для PyInstaller динамически
+PYINSTALLER_ARGS=(
+    --name="PriceUpdater"
+    --onefile
+    --console
+    --add-data "config.json:."
+    --hidden-import=telethon
+    --hidden-import=aiogram
+    --hidden-import=fastapi
+    --hidden-import=uvicorn
+    --hidden-import=pandas
+    --hidden-import=openpyxl
+)
+
+# Добавляем templates если существует
+if [ -d "templates" ]; then
+    PYINSTALLER_ARGS+=(--add-data "templates:templates")
+    echo "[INFO] Добавлена папка templates"
 fi
 
-pyinstaller --name="PriceUpdater" \
-    --onefile \
-    --console \
-    --add-data "config.json:." \
-    --add-data "templates:templates" \
-    $STATIC_OPT \
-    --hidden-import=telethon \
-    --hidden-import=aiogram \
-    --hidden-import=fastapi \
-    --hidden-import=uvicorn \
-    --hidden-import=pandas \
-    --hidden-import=openpyxl \
-    main.py
+# Добавляем static если существует
+if [ -d "static" ]; then
+    PYINSTALLER_ARGS+=(--add-data "static:static")
+    echo "[INFO] Добавлена папка static"
+fi
+
+pyinstaller "${PYINSTALLER_ARGS[@]}" main.py
 
 if [ $? -ne 0 ]; then
     echo "[ОШИБКА] Ошибка при сборке!"

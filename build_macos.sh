@@ -75,20 +75,34 @@ fi
 
 # Сборка через PyInstaller
 echo "[INFO] Запуск сборки PyInstaller..."
-pyinstaller --name="PriceUpdater" \
-    --onefile \
-    --console \
-    --add-data "config.json:." \
-    --add-data "templates:templates" \
-    --add-data "static:static" \
-    --hidden-import=telethon \
-    --hidden-import=aiogram \
-    --hidden-import=fastapi \
-    --hidden-import=uvicorn \
-    --hidden-import=pandas \
-    --hidden-import=openpyxl \
-    --osx-bundle-identifier="com.priceupdater.app" \
-    main.py
+
+# Формируем параметры для PyInstaller динамически
+PYINSTALLER_ARGS=(
+    --name="PriceUpdater"
+    --onefile
+    --console
+    --add-data "config.json:."
+    --hidden-import=telethon
+    --hidden-import=aiogram
+    --hidden-import=fastapi
+    --hidden-import=uvicorn
+    --hidden-import=pandas
+    --hidden-import=openpyxl
+)
+
+# Добавляем templates если существует
+if [ -d "templates" ]; then
+    PYINSTALLER_ARGS+=(--add-data "templates:templates")
+    echo "[INFO] Добавлена папка templates"
+fi
+
+# Добавляем static если существует
+if [ -d "static" ]; then
+    PYINSTALLER_ARGS+=(--add-data "static:static")
+    echo "[INFO] Добавлена папка static"
+fi
+
+pyinstaller "${PYINSTALLER_ARGS[@]}" main.py
 
 if [ $? -ne 0 ]; then
     echo "[ОШИБКА] Ошибка при сборке!"

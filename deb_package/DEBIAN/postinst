@@ -1,0 +1,4 @@
+#!/bin/bash
+echo "Установка завершена!"
+echo "Настройте /etc/price-updater/config.json перед запуском"
+chmod +x /usr/bin/price-updater

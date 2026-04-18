@@ -59,19 +59,23 @@ if not exist "config.json" (
 
 :: Сборка через PyInstaller
 echo [INFO] Запуск сборки PyInstaller...
-pyinstaller --name="PriceUpdater" ^
-    --onefile ^
-    --console ^
-    --add-data "config.json;." ^
-    --add-data "templates;templates" ^
-    --add-data "static;static" ^
-    --hidden-import=telethon ^
-    --hidden-import=aiogram ^
-    --hidden-import=fastapi ^
-    --hidden-import=uvicorn ^
-    --hidden-import=pandas ^
-    --hidden-import=openpyxl ^
-    main.py
+
+:: Проверяем наличие папок templates и static
+set "PYINSTALLER_ARGS=--name=\"PriceUpdater\" --onefile --console --add-data \"config.json;.\""
+
+if exist "templates" (
+    echo [INFO] Добавлена папка templates
+    set "PYINSTALLER_ARGS=!PYINSTALLER_ARGS! --add-data \"templates;templates\""
+)
+
+if exist "static" (
+    echo [INFO] Добавлена папка static
+    set "PYINSTALLER_ARGS=!PYINSTALLER_ARGS! --add-data \"static;static\""
+)
+
+set "PYINSTALLER_ARGS=!PYINSTALLER_ARGS! --hidden-import=telethon --hidden-import=aiogram --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pandas --hidden-import=openpyxl"
+
+pyinstaller !PYINSTALLER_ARGS! main.py
 
 if errorlevel 1 (
     echo [ОШИБКА] Ошибка при сборке!

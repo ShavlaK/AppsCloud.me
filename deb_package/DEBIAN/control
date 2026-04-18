@@ -1,0 +1,8 @@
+Package: price-updater
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Developer
+Description: Telegram Price Updater
+ Автоматическое обновление цен в Telegram-канале
