@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "price-updater"
+version = "1.0.0"
+description = "Автоматическое обновление прайс-листов в Telegram каналах с ежемесячными отчётами"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Price Updater Contributors"}
+]
+keywords = ["telegram", "price", "updater", "scheduler", "reports"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "aiogram>=3.4.0",
+    "apscheduler>=3.10.0",
+    "aiohttp>=3.9.0",
+    "telethon>=1.33.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "jinja2>=3.1.0",
+    "python-multipart>=0.0.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "black>=23.0",
+    "ruff>=0.1.0",
+    "pyinstaller>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/price-updater"
+Documentation = "https://github.com/yourusername/price-updater#readme"
+Repository = "https://github.com/yourusername/price-updater"
+Issues = "https://github.com/yourusername/price-updater/issues"
+
+[project.scripts]
+price-updater = "main:main_entry"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]
+
+[tool.setuptools.package-data]
+"templates" = ["*.html"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
