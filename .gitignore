@@ -1,7 +1,6 @@
-```bash
-# Build artifacts
-build/
-dist/
+# Compiled and build artifacts
+*.pyc
+__pycache__/
 *.o
 *.obj
 *.exe
@@ -9,16 +8,31 @@ dist/
 *.so
 *.a
 *.out
+dist/
+build/
+target/
 
 # Dependencies
-node_modules/
-venv/
 .venv/
-__pycache__/
+venv/
+node_modules/
 .mypy_cache/
 .pytest_cache/
-target/
+.coverage
+coverage/
+htmlcov/
 .gradle/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*
 
 # Editors
 .vscode/
@@ -26,21 +40,30 @@ target/
 *.swp
 *.swo
 
-# Logs and temp files
-*.log
-*.tmp
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# System
+# System files
 .DS_Store
 Thumbs.db
-```
+
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst

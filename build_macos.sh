@@ -1,186 +1,218 @@
 #!/bin/bash
 
+# ==========================================
+# СБОРКА УСТАНОВОЧНОГО ФАЙЛА (MACOS)
+# Полностью автоматическая сборка в DMG
+# ==========================================
+
+set -e
+
 echo "=========================================="
 echo "  СБОРКА УСТАНОВОЧНОГО ФАЙЛА (MACOS)"
 echo "=========================================="
 
-# Проверка наличия Python
-if ! command -v python3 &> /dev/null; then
-    echo "[ОШИБКА] Python3 не найден! Установите Python 3.9+ через Homebrew или python.org"
-    exit 1
-fi
+# Цвета для вывода
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
-REQUIRED_VERSION="3.9"
+# Функция для проверки команд
+check_command() {
+    if ! command -v $1 &> /dev/null; then
+        echo -e "${RED}[ОШИБКА]${NC} Команда $1 не найдена. Пожалуйста, установите её."
+        exit 1
+    fi
+}
 
-if [[ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]]; then
-    echo "[ОШИБКА] Требуется Python 3.9+, у вас версия $PYTHON_VERSION"
-    exit 1
-fi
+# Функция для проверки версии Python
+check_python_version() {
+    if ! command -v python3 &> /dev/null; then
+        echo -e "${RED}[ОШИБКА]${NC} Python 3 не найден."
+        echo "Пожалуйста, установите Python 3.11 или 3.12:"
+        echo "  brew install python@3.11"
+        exit 1
+    fi
 
-echo "[OK] Python $PYTHON_VERSION найден."
+    PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
+    
+    # Проверка на слишком новую версию (3.13+)
+    MAJOR=$(echo $PYTHON_VERSION | cut -d'.' -f1)
+    MINOR=$(echo $PYTHON_VERSION | cut -d'.' -f2)
+    
+    if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -ge 13 ]; then
+        echo -e "${YELLOW}[ПРЕДУПРЕЖДЕНИЕ]${NC} Обнаружена Python $PYTHON_VERSION."
+        echo "Версии Python 3.13+ могут иметь проблемы с совместимостью библиотек."
+        echo "Рекомендуется использовать Python 3.11 или 3.12."
+        echo ""
+        read -p "Хотите продолжить с текущей версией? (y/n): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Пожалуйста, установите Python 3.11: brew install python@3.11"
+            exit 1
+        fi
+    elif [ "$MAJOR" -ne 3 ] || [ "$MINOR" -lt 9 ]; then
+        echo -e "${RED}[ОШИБКА]${NC} Требуется Python 3.9+, найдено: $PYTHON_VERSION"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}[OK]${NC} Python $PYTHON_VERSION найден."
+}
 
-# Проверка архитектуры (Intel/Apple Silicon)
-ARCH=$(uname -m)
-if [ "$ARCH" = "arm64" ]; then
-    echo "[INFO] Обнаружена архитектура Apple Silicon (M1/M2/M3)"
-    ARCH_NAME="apple_silicon"
-elif [ "$ARCH" = "x86_64" ]; then
-    echo "[INFO] Обнаружена архитектура Intel"
-    ARCH_NAME="intel"
-else
-    echo "[WARN] Неизвестная архитектура: $ARCH"
-    ARCH_NAME="universal"
-fi
+# Функция для определения архитектуры
+detect_architecture() {
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "arm64" ]; then
+        echo -e "${GREEN}[INFO]${NC} Обнаружена архитектура Apple Silicon (M1/M2/M3)"
+        ARCH_NAME="apple_silicon"
+    elif [ "$ARCH" = "x86_64" ]; then
+        echo -e "${GREEN}[INFO]${NC} Обнаружена архитектура Intel"
+        ARCH_NAME="intel"
+    else
+        echo -e "${RED}[ОШИБКА]${NC} Неизвестная архитектура: $ARCH"
+        exit 1
+    fi
+}
+
+# Проверка зависимостей
+check_command python3
+check_command pip3
+check_command git
+
+# Проверка версии Python
+check_python_version
+
+# Определение архитектуры
+detect_architecture
+
+# Переход в директорию проекта
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
+echo -e "${GREEN}[INFO]${NC} Рабочая директория: $SCRIPT_DIR"
+
+# Очистка предыдущих сборок
+echo -e "${GREEN}[INFO]${NC} Очистка предыдущих сборок..."
+rm -rf venv build dist dist_release *.spec __pycache__
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
 # Создание виртуального окружения
-if [ ! -d "venv" ]; then
-    echo "[INFO] Создание виртуального окружения..."
-    python3 -m venv venv
-else
-    echo "[INFO] Виртуальное окружение уже существует."
-fi
+echo -e "${GREEN}[INFO]${NC} Создание виртуального окружения..."
+python3 -m venv venv
 
-# Активация окружения
-echo "[INFO] Активация виртуального окружения..."
+# Активация виртуального окружения
+echo -e "${GREEN}[INFO]${NC} Активация виртуального окружения..."
 source venv/bin/activate
 
-# Установка зависимостей
-echo "[INFO] Установка зависимостей..."
+# Обновление pip
+echo -e "${GREEN}[INFO]${NC} Обновление pip..."
 pip install --upgrade pip
-pip install -r requirements.txt
-pip install pyinstaller
 
-# Создание директорий
-mkdir -p data logs reports
-
-# Создание шаблона config.json, если отсутствует
-if [ ! -f "config.json" ]; then
-    echo "[INFO] Создание шаблона config.json..."
-    cat > config.json <<EOF
-{
-  "bot_token": "YOUR_BOT_TOKEN",
-  "api_id": 0,
-  "api_hash": "YOUR_API_HASH",
-  "source_channel": "@source_channel",
-  "target_channel": "@target_channel",
-  "markup_percent": 10,
-  "update_interval_hours": 1,
-  "admin_ids": [],
-  "web_host": "0.0.0.0",
-  "web_port": 8080
-}
-EOF
-fi
-
-# Сборка через PyInstaller
-echo "[INFO] Запуск сборки PyInstaller..."
-
-# Формируем параметры для PyInstaller динамически
-PYINSTALLER_ARGS=(
-    --name="PriceUpdater"
-    --onefile
-    --console
-    --add-data "config.json:."
-    --hidden-import=telethon
-    --hidden-import=aiogram
-    --hidden-import=fastapi
-    --hidden-import=uvicorn
-    --hidden-import=pandas
-    --hidden-import=openpyxl
-)
-
-# Добавляем templates если существует
-if [ -d "templates" ]; then
-    PYINSTALLER_ARGS+=(--add-data "templates:templates")
-    echo "[INFO] Добавлена папка templates"
-fi
-
-# Добавляем static если существует
-if [ -d "static" ]; then
-    PYINSTALLER_ARGS+=(--add-data "static:static")
-    echo "[INFO] Добавлена папка static"
-fi
-
-pyinstaller "${PYINSTALLER_ARGS[@]}" main.py
-
-if [ $? -ne 0 ]; then
-    echo "[ОШИБКА] Ошибка при сборке!"
+# Установка зависимостей
+echo -e "${GREEN}[INFO]${NC} Установка зависимостей..."
+if [ -f "requirements.txt" ]; then
+    # Установка pydantic с совместимой версией
+    pip install "pydantic>=2.5,<2.7" "pydantic-core>=2.14,<2.15"
+    pip install -r requirements.txt
+else
+    echo -e "${RED}[ОШИБКА]${NC} Файл requirements.txt не найден!"
     exit 1
 fi
 
-# Подготовка дистрибутива
-echo "[INFO] Подготовка папки дистрибутива..."
-rm -rf dist_release
-mkdir -p dist_release
-cp dist/PriceUpdater dist_release/
-cp config.json dist_release/config.json.example
-echo "Скопируйте config.json.example в config.json и настройте токены перед запуском!" > dist_release/README.txt
+# Установка дополнительных инструментов для сборки
+echo -e "${GREEN}[INFO]${NC} Установка инструментов сборки..."
+pip install pyinstaller dmgbuild
 
-# Создание .app бандла (опционально)
-echo "[INFO] Создание macOS .app бандла..."
-mkdir -p PriceUpdater.app/Contents/MacOS
-mkdir -p PriceUpdater.app/Contents/Resources
+# Создание необходимых директорий
+echo -e "${GREEN}[INFO]${NC} Создание необходимых директорий..."
+mkdir -p static templates data logs reports
 
-cat > PriceUpdater.app/Contents/Info.plist <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key>
-    <string>PriceUpdater</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.priceupdater.app</string>
-    <key>CFBundleName</key>
-    <string>PriceUpdater</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
-    <key>CFBundleVersion</key>
-    <string>1</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>10.15</string>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-</dict>
-</plist>
+# Создание заглушек для static и templates если они пусты
+if [ ! -f "static/.gitkeep" ]; then
+    touch static/.gitkeep
+fi
+if [ ! -f "templates/.gitkeep" ]; then
+    touch templates/.gitkeep
+fi
+
+# Проверка наличия основных файлов проекта
+if [ ! -f "main.py" ]; then
+    echo -e "${RED}[ОШИБКА]${NC} Файл main.py не найден!"
+    exit 1
+fi
+
+# Запуск сборки PyInstaller
+echo -e "${GREEN}[INFO]${NC} Запуск сборки PyInstaller..."
+pyinstaller --name="PriceUpdater" \
+    --onefile \
+    --windowed \
+    --add-data "static:static" \
+    --add-data "templates:templates" \
+    --add-data "config.json:." \
+    --hidden-import="aiohttp" \
+    --hidden-import="aiogram" \
+    --hidden-import="fastapi" \
+    --hidden-import="uvicorn" \
+    --hidden-import="jinja2" \
+    --osx-bundle-identifier="com.priceupdater.app" \
+    --icon="icon.icns" \
+    main.py 2>&1 || {
+    echo -e "${RED}[ОШИБКА]${NC} Ошибка при сборке PyInstaller!"
+    exit 1
+}
+
+# Проверка успешности сборки
+if [ ! -f "dist/PriceUpdater.app" ]; then
+    echo -e "${RED}[ОШИБКА]${NC} Файл приложения не найден после сборки!"
+    exit 1
+fi
+
+echo -e "${GREEN}[OK]${NC} PyInstaller сборка завершена успешно!"
+
+# Создание директории для релиза
+echo -e "${GREEN}[INFO]${NC} Создание директории для релиза..."
+mkdir -p dist_release/macOS
+
+# Копирование собранного приложения
+cp -R dist/PriceUpdater.app dist_release/macOS/
+
+# Создание DMG образа
+echo -e "${GREEN}[INFO]${NC} Создание DMG образа..."
+
+# Создание скрипта для dmgbuild
+cat > dmg_config.py << EOF
+format = 'UDZO'
+size = None
+files_dir = 'dist_release/macOS'
+symlinks = {'Applications': '/Applications'}
+background = None
+icon_size = 80
+text_size = 12
 EOF
 
-cp dist/PriceUpdater PriceUpdater.app/Contents/MacOS/
-chmod +x PriceUpdater.app/Contents/MacOS/PriceUpdater
+# Сборка DMG
+dmgbuild -s dmg_config.py -D dist_release/macOS "PriceUpdater" dist_release/macOS/PriceUpdater.dmg
+echo -e "${GREEN}[OK]${NC} DMG образ создан: dist_release/macOS/PriceUpdater.dmg"
 
-# Копирование ресурсов
-cp -r templates PriceUpdater.app/Contents/Resources/ 2>/dev/null || true
-cp -r static PriceUpdater.app/Contents/Resources/ 2>/dev/null || true
-cp config.json PriceUpdater.app/Contents/Resources/ 2>/dev/null || true
+# Очистка временных файлов
+rm -f dmg_config.py
 
-# Упаковка в DMG (если есть hdiutil)
-if command -v hdiutil &> /dev/null; then
-    echo "[INFO] Создание DMG образа..."
-    
-    mkdir -p dmg_temp
-    cp -r PriceUpdater.app dmg_temp/
-    cp dist_release/README.txt dmg_temp/
-    cp dist_release/config.json.example dmg_temp/
-    
-    hdiutil create -volname "PriceUpdater" -srcfolder dmg_temp -ov -format UDZO dist_release/PriceUpdater_${ARCH_NAME}.dmg
-    
-    rm -rf dmg_temp
-    echo "[OK] DMG образ создан: dist_release/PriceUpdater_${ARCH_NAME}.dmg"
-else
-    cp -r PriceUpdater.app dist_release/
-    echo "[INFO] .app бандл скопирован в dist_release/"
-fi
-
-rm -rf PriceUpdater.app
-
+# Вывод результатов
+echo ""
 echo "=========================================="
-echo "  СБОРКА ЗАВЕРШЕНА УСПЕШНО!"
-echo "  Файлы находятся в папке: dist_release"
-echo "  - PriceUpdater (исполняемый файл)"
-if command -v hdiutil &> /dev/null; then
-    echo "  - PriceUpdater_${ARCH_NAME}.dmg (DMG образ)"
-fi
-echo "  - PriceUpdater.app (.app бандл)"
+echo -e "${GREEN}СБОРКА ЗАВЕРШЕНА УСПЕШНО!${NC}"
 echo "=========================================="
+echo "Результаты находятся в папке: dist_release/macOS/"
+echo ""
+echo "Файлы:"
+ls -lh dist_release/macOS/
+echo ""
+echo "Для установки:"
+echo "  1. Откройте PriceUpdater.dmg"
+echo "  2. Перетащите PriceUpdater.app в папку Applications"
+echo "  3. Запустите приложение из папки Applications"
+echo ""
+echo -e "${YELLOW}Примечание:${NC} При первом запуске macOS может предупредить о неизвестном разработчике."
+echo "Чтобы обойти это: Системные настройки -> Защита и безопасность -> Разрешить"
+echo ""
