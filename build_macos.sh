@@ -114,7 +114,7 @@ setup_python
 
 # Проверка версии Python после установки
 if ! command -v python3 &> /dev/null; then
-    echo -e "${RED}[ОШИБКА]${NC] Python 3 не найден после установки."
+    echo -e "${RED}[ОШИБКА]${NC} Python 3 не найден после установки."
     exit 1
 fi
 
