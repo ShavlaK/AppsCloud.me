@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from price_database import PriceDatabase
+from report_generator import ReportGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +26,16 @@ logger = logging.getLogger(__name__)
 # ============================================================
 price_updater = None  # PriceUpdater instance
 scheduler = None      # APScheduler instance
+report_gen = None     # ReportGenerator instance
 
 
 def set_global_objects(updater, sched):
     """Устанавливает глобальные объекты для веб-сервера."""
-    global price_updater, scheduler
+    global price_updater, scheduler, report_gen
     price_updater = updater
     scheduler = sched
+    if updater and hasattr(updater, 'db'):
+        report_gen = ReportGenerator(updater.db)
 
 
 # ============================================================
@@ -422,6 +426,66 @@ async def get_report(filename: str):
         raise HTTPException(status_code=404, detail="Отчёт не найден")
 
     return FileResponse(filepath, media_type="application/json")
+
+
+# ============================================================
+# API: Аналитика и графики
+# ============================================================
+
+@app.get("/api/analytics")
+async def get_analytics(product_name: Optional[str] = None):
+    """Получает всю аналитику для графиков: тренды, дни недели, месяцы."""
+    if not report_gen:
+        raise HTTPException(status_code=500, detail="ReportGenerator не инициализирован")
+    
+    try:
+        stats = report_gen.get_all_stats(product_name)
+        return {"status": "ok", "data": stats}
+    except Exception as e:
+        logger.error(f"Error getting analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/analytics/trend")
+async def get_trend(days: int = 30, product_name: Optional[str] = None):
+    """Динамика цен за последние N дней."""
+    if not report_gen:
+        raise HTTPException(status_code=500, detail="ReportGenerator не инициализирован")
+    
+    try:
+        data = report_gen.generate_price_trend_report(product_name, days)
+        return data
+    except Exception as e:
+        logger.error(f"Error getting trend: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/analytics/day-of-week")
+async def get_day_of_week(weeks: int = 8, product_name: Optional[str] = None):
+    """Анализ цен по дням недели."""
+    if not report_gen:
+        raise HTTPException(status_code=500, detail="ReportGenerator не инициализирован")
+    
+    try:
+        data = report_gen.generate_day_of_week_analysis(product_name, weeks)
+        return data
+    except Exception as e:
+        logger.error(f"Error getting day of week analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/analytics/monthly")
+async def get_monthly(months: int = 3, product_name: Optional[str] = None):
+    """Анализ волатильности по месяцам."""
+    if not report_gen:
+        raise HTTPException(status_code=500, detail="ReportGenerator не инициализирован")
+    
+    try:
+        data = report_gen.generate_monthly_volatility(product_name, months)
+        return data
+    except Exception as e:
+        logger.error(f"Error getting monthly volatility: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================

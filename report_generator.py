@@ -11,7 +11,8 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
+from collections import defaultdict
 
 from price_database import PriceDatabase
 
@@ -404,3 +405,171 @@ class ReportGenerator:
 
         logger.info(f"Отчёт сохранён: {filepath}")
         return filepath
+
+    def generate_price_trend_report(self, product_name: Optional[str] = None, days: int = 30) -> Dict[str, Any]:
+        """Генерирует отчет о динамике цен за последние N дней."""
+        conn = self.db._get_connection()
+        try:
+            cursor = conn.cursor()
+            date_from = (datetime.now() - timedelta(days=days)).isoformat()
+            
+            query = """
+                SELECT product_name, price, timestamp 
+                FROM price_history 
+                WHERE timestamp > ? 
+            """
+            params = [date_from]
+            
+            if product_name:
+                query += " AND product_name = ?"
+                params.append(product_name)
+            
+            query += " ORDER BY timestamp ASC"
+            
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            
+            # Группировка данных по продуктам
+            trends = defaultdict(list)
+            for row in rows:
+                trends[row['product_name']].append({
+                    'date': row['timestamp'],
+                    'price': row['price']
+                })
+            
+            return {
+                'success': True,
+                'data': dict(trends),
+                'period_days': days
+            }
+        except Exception as e:
+            logger.error(f"Error generating trend report: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    def generate_day_of_week_analysis(self, product_name: Optional[str] = None, weeks: int = 4) -> Dict[str, Any]:
+        """Анализирует среднюю цену по дням недели за последние N недель."""
+        conn = self.db._get_connection()
+        try:
+            cursor = conn.cursor()
+            date_from = (datetime.now() - timedelta(weeks=weeks)).isoformat()
+            
+            query = """
+                SELECT product_name, price, timestamp 
+                FROM price_history 
+                WHERE timestamp > ? 
+            """
+            params = [date_from]
+            
+            if product_name:
+                query += " AND product_name = ?"
+                params.append(product_name)
+            
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            
+            # Агрегация по дням недели (0=Пн, 6=Вс)
+            day_prices = defaultdict(list)
+            for row in rows:
+                dt = datetime.fromisoformat(row['timestamp'])
+                day_idx = dt.weekday()
+                day_prices[day_idx].append(row['price'])
+            
+            result = {}
+            day_names = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+            
+            for i in range(7):
+                prices = day_prices[i]
+                avg_price = sum(prices) / len(prices) if prices else 0
+                min_price = min(prices) if prices else 0
+                max_price = max(prices) if prices else 0
+                result[day_names[i]] = {
+                    'average': round(avg_price, 2),
+                    'min': min_price,
+                    'max': max_price,
+                    'count': len(prices)
+                }
+            
+            return {
+                'success': True,
+                'data': result
+            }
+        except Exception as e:
+            logger.error(f"Error generating day of week analysis: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    def generate_monthly_volatility(self, product_name: Optional[str] = None, months: int = 3) -> Dict[str, Any]:
+        """Анализирует волатильность и изменения цен по месяцам."""
+        conn = self.db._get_connection()
+        try:
+            cursor = conn.cursor()
+            date_from = (datetime.now() - timedelta(days=months*30)).isoformat()
+            
+            query = """
+                SELECT product_name, price, timestamp 
+                FROM price_history 
+                WHERE timestamp > ? 
+            """
+            params = [date_from]
+            
+            if product_name:
+                query += " AND product_name = ?"
+                params.append(product_name)
+            
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            
+            # Группировка по месяцам (YYYY-MM)
+            month_data = defaultdict(list)
+            for row in rows:
+                dt = datetime.fromisoformat(row['timestamp'])
+                month_key = dt.strftime("%Y-%m")
+                month_data[month_key].append(row['price'])
+            
+            result = {}
+            sorted_months = sorted(month_data.keys())
+            
+            prev_avg = None
+            for month in sorted_months:
+                prices = month_data[month]
+                avg_price = sum(prices) / len(prices)
+                volatility = (max(prices) - min(prices)) if prices else 0
+                
+                change_percent = 0.0
+                if prev_avg is not None and prev_avg > 0:
+                    change_percent = ((avg_price - prev_avg) / prev_avg) * 100
+                
+                result[month] = {
+                    'average': round(avg_price, 2),
+                    'min': min(prices),
+                    'max': max(prices),
+                    'volatility': round(volatility, 2),
+                    'change_percent': round(change_percent, 2),
+                    'samples': len(prices)
+                }
+                prev_avg = avg_price
+            
+            return {
+                'success': True,
+                'data': result
+            }
+        except Exception as e:
+            logger.error(f"Error generating monthly volatility report: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    def get_all_stats(self, product_name: Optional[str] = None) -> Dict[str, Any]:
+        """Получает всю статистику одним запросом для фронтенда."""
+        trend = self.generate_price_trend_report(product_name, days=30)
+        dow = self.generate_day_of_week_analysis(product_name, weeks=8)
+        monthly = self.generate_monthly_volatility(product_name, months=3)
+        
+        return {
+            'trend_30d': trend.get('data', {}),
+            'day_of_week': dow.get('data', {}),
+            'monthly': monthly.get('data', {})
+        }
