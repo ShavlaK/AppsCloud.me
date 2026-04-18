@@ -24,20 +24,20 @@
 
 ## ⚡ Быстрый старт (One-Click Setup)
 
-Вам не нужно клонировать репозиторий или вручную устанавливать Python. Используйте наши скрипты автоматической установки.
+Вам не нужно вручную устанавливать Python или настраивать окружение. Используйте наши скрипты автоматической установки — они всё сделают за вас!
 
 ### Для запуска приложения
 
-Скопируйте и выполните **одну команду** в терминале (PowerShell для Windows, Terminal для macOS/Linux):
+Скопируйте и выполните **одну команду** в терминале:
 
 #### 🪟 Windows (PowerShell)
 ```powershell
-irm https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/run_project.bat -OutFile run_project.bat; .\run_project.bat
+irm https://raw.githubusercontent.com/your-username/price-updater/main/run_project.bat -OutFile run_project.bat; .\run_project.bat
 ```
 
 #### 🍎 macOS / 🐧 Linux (Bash)
 ```bash
-curl -O https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/run_project.sh && chmod +x run_project.sh && ./run_project.sh
+curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/run_project.sh -o run_project.sh && chmod +x run_project.sh && ./run_project.sh
 ```
 
 > **Что сделает скрипт:**
@@ -51,19 +51,27 @@ curl -O https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/run_proje
 
 ### Для сборки установочного файла
 
-Хотите создать `.exe` (Windows), `.dmg` (macOS) или `.deb` (Linux) дистрибутив? Используйте скрипты сборщики. Они сами настройт всё необходимое.
+Хотите создать `.exe` (Windows), `.dmg` (macOS) или `.deb`/`.tar.gz` (Linux) дистрибутив? Используйте скрипты сборщики. Они сами настройт всё необходимое.
 
 #### 🪟 Windows (PowerShell)
 ```powershell
-irm https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/build_installer.bat -OutFile build_installer.bat; .\build_installer.bat
+irm https://raw.githubusercontent.com/your-username/price-updater/main/build_windows.bat -OutFile build_windows.bat; .\build_windows.bat
 ```
 
-#### 🍎 macOS / 🐧 Linux (Bash)
+#### 🍎 macOS (Bash)
 ```bash
-curl -O https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/build_installer.sh && chmod +x build_installer.sh && ./build_installer.sh
+curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/build_macos.sh -o build_macos.sh && chmod +x build_macos.sh && ./build_macos.sh
 ```
 
-> **Результат:** Готовый установочный файл появится в папке `dist_release`.
+#### 🐧 Linux (Bash)
+```bash
+curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/build_linux.sh -o build_linux.sh && chmod +x build_linux.sh && ./build_linux.sh
+```
+
+> **Результат:** Готовый установочный файл появится в папке `dist_release`:
+> - **Windows:** `PriceUpdater_Windows.zip` с `.exe` файлом внутри
+> - **macOS:** `PriceUpdater.dmg` образ
+> - **Linux:** `.deb` пакет (для Debian/Ubuntu) и `tar.gz` архив (для остальных дистрибутивов)
 
 ---
 
@@ -79,8 +87,8 @@ curl -O https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/build_ins
 
 1.  **Клонируйте репозиторий:**
     ```bash
-    git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-    cd YOUR_REPO
+    git clone https://github.com/your-username/price-updater.git
+    cd price-updater
     ```
 
 2.  **Создайте виртуальное окружение и активируйте его:**
@@ -132,7 +140,11 @@ curl -O https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/build_ins
 *   **macOS:** Запустите `chmod +x build_macos.sh && ./build_macos.sh`
 *   **Linux:** Запустите `chmod +x build_linux.sh && ./build_linux.sh`
 
-Скрипты автоматически проверят зависимости, соберут бинарный файл и упаковщик (где применимо).
+Все скрипты автоматически:
+- Проверят и установят недостающие зависимости (Python, Git, системные пакеты)
+- Создут виртуальное окружение
+- Установят все необходимые библиотеки
+- Соберут бинарный файл и упаковщик (где применимо)
 
 ---
 
@@ -154,7 +166,7 @@ curl -O https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/build_ins
 ├── logs/                # Логи (игнорируется git)
 ├── reports/             # Отчёты (игнорируется git)
 ├── run_project.*        # Скрипты быстрого запуска
-└── build_installer.*    # Скрипты сборки установщиков
+└── build_*              # Скрипты сборки установщиков
 ```
 
 ---
@@ -173,7 +185,7 @@ curl -O https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/build_ins
 ## 🤝 Поддержка
 
 Если у вас возникли вопросы или проблемы:
-1.  Проверьте раздел [Issues](https://github.com/YOUR_USERNAME/YOUR_REPO/issues).
+1.  Проверьте раздел [Issues](https://github.com/your-username/price-updater/issues).
 2.  Убедитесь, что версия Python соответствует требованиям (3.9–3.12).
 3.  Проверьте логи в папке `logs/` или во вкладке "Логи" веб-интерфейса.
 

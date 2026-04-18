@@ -3,63 +3,91 @@
 # ==========================================
 # СБОРКА УСТАНОВОЧНОГО ФАЙЛА (MACOS)
 # Полностью автоматическая сборка в DMG
+# Один клик - полная настройка и сборка
 # ==========================================
 
 set -e
 
 echo "=========================================="
-echo "  СБОРКА УСТАНОВОЧНОГО ФАЙЛА (MACOS)"
+echo "  СБОРКА УСТАНОВЧИКА PRICE UPDATER (macOS)"
 echo "=========================================="
 
 # Цвета для вывода
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Переход в директорию проекта
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
+echo -e "${BLUE}[INFO]${NC} Рабочая директория: $SCRIPT_DIR"
 
 # Функция для проверки команд
 check_command() {
     if ! command -v $1 &> /dev/null; then
-        echo -e "${RED}[ОШИБКА]${NC} Команда $1 не найдена. Пожалуйста, установите её."
-        exit 1
+        return 1
     fi
+    return 0
 }
 
-# Функция для проверки версии Python
-check_python_version() {
-    if ! command -v python3 &> /dev/null; then
-        echo -e "${RED}[ОШИБКА]${NC} Python 3 не найден."
-        echo "Пожалуйста, установите Python 3.11 или 3.12:"
-        echo "  brew install python@3.11"
-        exit 1
-    fi
+# Функция установки Homebrew
+install_homebrew() {
+    echo -e "${YELLOW}[INFO]${NC} Установка Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+    echo -e "${GREEN}[OK]${NC} Homebrew установлен."
+}
 
-    PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
+# Функция установки Python
+setup_python() {
+    local target_version="python@3.11"
     
-    # Проверка на слишком новую версию (3.13+)
-    MAJOR=$(echo $PYTHON_VERSION | cut -d'.' -f1)
-    MINOR=$(echo $PYTHON_VERSION | cut -d'.' -f2)
-    
-    if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -ge 13 ]; then
-        echo -e "${YELLOW}[ПРЕДУПРЕЖДЕНИЕ]${NC} Обнаружена Python $PYTHON_VERSION."
-        echo "Версии Python 3.13+ могут иметь проблемы с совместимостью библиотек."
-        echo "Рекомендуется использовать Python 3.11 или 3.12."
-        echo ""
-        read -p "Хотите продолжить с текущей версией? (y/n): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "Пожалуйста, установите Python 3.11: brew install python@3.11"
-            exit 1
+    # Проверка текущей версии Python
+    if check_command python3; then
+        PYTHON_VERSION=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1,2)
+        MAJOR=$(echo $PYTHON_VERSION | cut -d'.' -f1)
+        MINOR=$(echo $PYTHON_VERSION | cut -d'.' -f2)
+        
+        if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -ge 9 ] && [ "$MINOR" -le 12 ]; then
+            echo -e "${GREEN}[OK]${NC} Подходящая версия Python уже установлена: $PYTHON_VERSION. Пропуск установки."
+            return 0
+        else
+            echo -e "${YELLOW}[WARN]${NC} Версия Python $PYTHON_VERSION не подходит (требуется 3.9-3.12). Будет установлен Python 3.11."
         fi
-    elif [ "$MAJOR" -ne 3 ] || [ "$MINOR" -lt 9 ]; then
-        echo -e "${RED}[ОШИБКА]${NC} Требуется Python 3.9+, найдено: $PYTHON_VERSION"
-        exit 1
     fi
     
-    echo -e "${GREEN}[OK]${NC} Python $PYTHON_VERSION найден."
+    # Установка Python через Homebrew
+    if ! check_command brew; then
+        install_homebrew
+    fi
+    
+    echo -e "${YELLOW}[INFO]${NC} Установка Python 3.11 через Homebrew..."
+    brew install $target_version
+    brew link --overwrite $target_version 2>/dev/null || true
+    
+    echo -e "${GREEN}[OK]${NC} Python 3.11 установлен."
 }
 
-# Функция для определения архитектуры
+# Функция установки Git
+setup_git() {
+    if ! check_command git; then
+        echo -e "${YELLOW}[INFO]${NC} Git не найден. Установка..."
+        if ! check_command brew; then
+            install_homebrew
+        fi
+        brew install git
+        echo -e "${GREEN}[OK]${NC} Git установлен."
+    else
+        GIT_VERSION=$(git --version)
+        echo -e "${GREEN}[OK]${NC} Git уже установлен: $GIT_VERSION. Пропуск установки."
+    fi
+}
+
+# Функция определения архитектуры
 detect_architecture() {
     ARCH=$(uname -m)
     if [ "$ARCH" = "arm64" ]; then
@@ -74,22 +102,33 @@ detect_architecture() {
     fi
 }
 
-# Проверка зависимостей
-check_command python3
-check_command pip3
-check_command git
+echo ""
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo -e "${BLUE}  ШАГ 1: ПРОВЕРКА И НАСТРОЙКА ОКРУЖЕНИЯ${NC}"
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo ""
 
-# Проверка версии Python
-check_python_version
+# Проверка и установка зависимостей
+setup_git
+setup_python
+
+# Проверка версии Python после установки
+if ! command -v python3 &> /dev/null; then
+    echo -e "${RED}[ОШИБКА]${NC] Python 3 не найден после установки."
+    exit 1
+fi
+
+PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
+echo -e "${GREEN}[OK]${NC} Активная версия Python: $PYTHON_VERSION"
 
 # Определение архитектуры
 detect_architecture
 
-# Переход в директорию проекта
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR"
-
-echo -e "${GREEN}[INFO]${NC} Рабочая директория: $SCRIPT_DIR"
+echo ""
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo -e "${BLUE}  ШАГ 2: СОЗДАНИЕ ВИРТУАЛЬНОГО ОКРУЖЕНИЯ${NC}"
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo ""
 
 # Очистка предыдущих сборок
 echo -e "${GREEN}[INFO]${NC} Очистка предыдущих сборок..."
@@ -107,26 +146,84 @@ source venv/bin/activate
 
 # Обновление pip
 echo -e "${GREEN}[INFO]${NC} Обновление pip..."
-pip install --upgrade pip
+pip install --upgrade pip --quiet
+
+echo ""
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo -e "${BLUE}  ШАГ 3: УСТАНОВКА ЗАВИСИМОСТЕЙ${NC}"
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo ""
 
 # Установка зависимостей
-echo -e "${GREEN}[INFO]${NC} Установка зависимостей..."
+echo -e "${GREEN}[INFO]${NC} Установка зависимостей из requirements.txt..."
 if [ -f "requirements.txt" ]; then
     # Установка pydantic с совместимой версией
-    pip install "pydantic>=2.5,<2.7" "pydantic-core>=2.14,<2.15"
-    pip install -r requirements.txt
+    echo -e "${YELLOW}[INFO]${NC} Установка совместимых версий pydantic..."
+    pip install "pydantic>=2.5,<2.7" "pydantic-core>=2.14,<2.15" --quiet
+    pip install -r requirements.txt --quiet
 else
     echo -e "${RED}[ОШИБКА]${NC} Файл requirements.txt не найден!"
     exit 1
 fi
 
-# Установка дополнительных инструментов для сборки
-echo -e "${GREEN}[INFO]${NC} Установка инструментов сборки..."
-pip install pyinstaller dmgbuild
+# Установка инструментов для сборки
+echo -e "${GREEN}[INFO]${NC} Установка инструментов сборки (PyInstaller, dmgbuild)..."
+pip install pyinstaller dmgbuild --quiet
+
+# Проверка наличия необходимых системных библиотек
+echo -e "${GREEN}[INFO]${NC} Проверка системных зависимостей..."
+
+# Функция проверки установленных Xcode Command Line Tools
+check_xcode_clt() {
+    if pkgutil --pkgs | grep -q com.apple.pkg.CLTools_Executables; then
+        # Проверяем, что инструменты действительно работают
+        if xcode-select -p &> /dev/null; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+if ! check_xcode_clt; then
+    echo -e "${YELLOW}[WARN]${NC} Xcode Command Line Tools не найдены. Установка..."
+    # Пробуем установить через xcode-select
+    xcode-select --install 2>/dev/null || true
+    
+    # Ждем подтверждения пользователем (до 60 секунд)
+    echo -e "${YELLOW}[INFO]${NC} Если появилось окно установки, подтвердите установку Xcode Command Line Tools."
+    
+    # Проверяем установку в цикле (максимум 60 секунд)
+    WAIT_TIME=0
+    MAX_WAIT=60
+    while ! check_xcode_clt && [ $WAIT_TIME -lt $MAX_WAIT ]; do
+        sleep 5
+        WAIT_TIME=$((WAIT_TIME + 5))
+        echo -ne "${YELLOW}[INFO]${NC} Ожидание установки... ($WAIT_TIME сек)\r"
+    done
+    echo ""
+    
+    if check_xcode_clt; then
+        echo -e "${GREEN}[OK]${NC} Xcode Command Line Tools успешно установлены."
+    else
+        echo -e "${YELLOW}[WARN]${NC} Не удалось автоматически установить Xcode Command Line Tools."
+        echo -e "${YELLOW}[INFO]${NC} Установите их вручную через: xcode-select --install"
+        echo -e "${YELLOW}[INFO]${NC} Продолжение сборки без Xcode CLT может привести к ошибкам компиляции."
+    fi
+else
+    XCODE_PATH=$(xcode-select -p)
+    echo -e "${GREEN}[OK]${NC} Xcode Command Line Tools уже установлены: $XCODE_PATH"
+fi
+echo -e "${GREEN}[OK]${NC} Системные зависимости проверены."
+
+echo ""
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo -e "${BLUE}  ШАГ 4: ПОДГОТОВКА ФАЙЛОВ ПРОЕКТА${NC}"
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo ""
 
 # Создание необходимых директорий
 echo -e "${GREEN}[INFO]${NC} Создание необходимых директорий..."
-mkdir -p static templates data logs reports
+mkdir -p static templates data logs reports sessions
 
 # Создание заглушек для static и templates если они пусты
 if [ ! -f "static/.gitkeep" ]; then
@@ -141,6 +238,19 @@ if [ ! -f "main.py" ]; then
     echo -e "${RED}[ОШИБКА]${NC} Файл main.py не найден!"
     exit 1
 fi
+
+# Копирование config.json если нет
+if [ ! -f "config.json" ]; then
+    echo -e "${YELLOW}[INFO]${NC} Копирование config.json.example в config.json..."
+    cp config.json.example config.json
+    echo -e "${YELLOW}[WARN]${NC} Не забудьте настроить config.json перед запуском!"
+fi
+
+echo ""
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo -e "${BLUE}  ШАГ 5: СБОРКА PYINSTALLER${NC}"
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo ""
 
 # Запуск сборки PyInstaller
 echo -e "${GREEN}[INFO]${NC} Запуск сборки PyInstaller..."
@@ -169,6 +279,12 @@ if [ ! -f "dist/PriceUpdater.app" ]; then
 fi
 
 echo -e "${GREEN}[OK]${NC} PyInstaller сборка завершена успешно!"
+
+echo ""
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo -e "${BLUE}  ШАГ 6: СОЗДАНИЕ DMG ОБРАЗА${NC}"
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+echo ""
 
 # Создание директории для релиза
 echo -e "${GREEN}[INFO]${NC} Создание директории для релиза..."
@@ -201,18 +317,21 @@ rm -f dmg_config.py
 # Вывод результатов
 echo ""
 echo "=========================================="
-echo -e "${GREEN}СБОРКА ЗАВЕРШЕНА УСПЕШНО!${NC}"
+echo -e "${GREEN}✅ СБОРКА ЗАВЕРШЕНА УСПЕШНО!${NC}"
 echo "=========================================="
-echo "Результаты находятся в папке: dist_release/macOS/"
 echo ""
-echo "Файлы:"
+echo -e "${BLUE}📦 Результаты находятся в папке:${NC} dist_release/macOS/"
+echo ""
+echo -e "${BLUE}Файлы:${NC}"
 ls -lh dist_release/macOS/
 echo ""
-echo "Для установки:"
+echo -e "${BLUE}📋 Для установки:${NC}"
 echo "  1. Откройте PriceUpdater.dmg"
 echo "  2. Перетащите PriceUpdater.app в папку Applications"
 echo "  3. Запустите приложение из папки Applications"
 echo ""
-echo -e "${YELLOW}Примечание:${NC} При первом запуске macOS может предупредить о неизвестном разработчике."
-echo "Чтобы обойти это: Системные настройки -> Защита и безопасность -> Разрешить"
+echo -e "${YELLOW}⚠️ Примечание:${NC} При первом запуске macOS может предупредить о неизвестном разработчике."
+echo "   Чтобы обойти это: Системные настройки → Защита и безопасность → Разрешить"
+echo ""
+echo -e "${GREEN}🌐 Веб-интерфейс будет доступен по адресу: http://localhost:8080${NC}"
 echo ""
