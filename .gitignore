@@ -1,21 +1,50 @@
-```
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.py~
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
 
 # Logs
 *.log
 logs/
 
 # Database
-prices.db
+*.db
+*.sqlite
+data/
 
-# Distribution
+# Sessions
+sessions/
+*.session
+
+# Distribution and Build
 dist_release/
+dist/
+build/
+*.spec
+deb_package/
 
-# Build artifacts
-build_scripts/
-```
+# Reports
+reports/
+*.xlsx
+*.csv
+
+# macOS
+.DS_Store
+Thumbs.db
+
+# Config with secrets (use config.json.example instead)
+config.json
