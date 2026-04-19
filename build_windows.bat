@@ -18,6 +18,35 @@ cd /d "%~dp0"
 echo [INFO] Рабочая директория: %CD%
 echo.
 
+:: ==========================================
+:: ПРОВЕРКА ВЕРСИИ WINDOWS
+:: ==========================================
+echo [INFO] Проверка версии Windows...
+
+for /f "tokens=3" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v CurrentBuild 2^>nul') do set BUILD=%%a
+for /f "tokens=2 delims==" %%a in ('wmic os get Caption /value ^| find "Caption"') do set WIN_NAME=%%a
+
+:: Определение минимальной версии (Windows 10 1903 или выше)
+if %BUILD% LSS 18362 (
+    echo [ОШИБКА] Требуется Windows 10 версии 1903 или выше. Найдена версия: %WIN_NAME% (build %BUILD%)
+    echo.
+    pause
+    exit /b 1
+)
+
+echo [OK] Обнаружена Windows: %WIN_NAME% (build %BUILD%)
+echo [OK] Версия Windows совместима (требуется Windows 10 1903+)
+echo.
+
+:: Определение архитектуры
+wmic OS get OSArchitecture | find "64" >nul
+if %errorlevel% equ 0 (
+    echo [OK] Архитектура системы: x64
+) else (
+    echo [WARN] Обнаружена 32-битная система. Некоторые функции могут быть недоступны.
+)
+echo.
+
 :: Функция проверки команды
 :check_command
 where %1 >nul 2>nul

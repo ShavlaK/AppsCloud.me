@@ -14,7 +14,6 @@ from apscheduler.triggers.cron import CronTrigger
 
 from logger_setup import setup_logging
 from price_database import PriceDatabase
-from price_storage import PriceStorage
 from report_generator import ReportGenerator
 from telegram_channel import ChannelPublisher
 from telegram_parser import SourceBotParser
@@ -40,8 +39,7 @@ class PriceUpdater:
             self.config["your_bot_token"],
             self.config["channel_id"]
         )
-        self.storage = PriceStorage()  # Оставляем для совместимости
-        self.db = PriceDatabase()      # Новая SQLite база
+        self.db = PriceDatabase()      # SQLite база для хранения истории
         self.report_gen = ReportGenerator(self.db)
         self.message_id = self.config.get("price_message_id")
 

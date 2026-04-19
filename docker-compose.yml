@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  price-updater:
+    build: .
+    container_name: price-updater
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # Persist database
+      - ./data:/app/data
+      # Persist logs
+      - ./logs:/app/logs
+      # Mount config (create from example first)
+      - ./config.json:/app/config.json:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - WEB_HOST=0.0.0.0
+      - WEB_PORT=8080
+      # Override config with env vars if needed
+      - MARKUP_PERCENT=${MARKUP_PERCENT:-15}
+      - UPDATE_INTERVAL_HOURS=${UPDATE_INTERVAL_HOURS:-1}
+    networks:
+      - price-updater-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  price-updater-network:
+    driver: bridge

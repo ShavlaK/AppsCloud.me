@@ -25,6 +25,42 @@ cd "$SCRIPT_DIR"
 
 echo -e "${BLUE}[INFO]${NC} Рабочая директория: $SCRIPT_DIR"
 
+# ==========================================
+# ПРОВЕРКА ВЕРСИИ MACOS
+# ==========================================
+check_macos_version() {
+    echo -e "${YELLOW}[INFO]${NC} Проверка версии macOS..."
+    
+    # Получение версии macOS
+    local MACOS_VERSION=$(sw_vers -productVersion)
+    local MAJOR_VERSION=$(echo $MACOS_VERSION | cut -d'.' -f1)
+    
+    echo -e "${GREEN}[OK]${NC} Обнаружена версия macOS: $MACOS_VERSION"
+    
+    # Проверка минимальной версии (требуется macOS 10.15 Catalina или выше)
+    if [ "$MAJOR_VERSION" -lt 10 ]; then
+        echo -e "${RED}[ОШИБКА]${NC} Требуется macOS 10.15 (Catalina) или выше. Найдена версия: $MACOS_VERSION"
+        return 1
+    elif [ "$MAJOR_VERSION" -eq 10 ]; then
+        local MINOR_VERSION=$(echo $MACOS_VERSION | cut -d'.' -f2)
+        if [ "$MINOR_VERSION" -lt 15 ]; then
+            echo -e "${RED}[ОШИБКА]${NC} Требуется macOS 10.15 (Catalina) или выше. Найдена версия: $MACOS_VERSION"
+            return 1
+        fi
+    fi
+    
+    echo -e "${GREEN}[OK]${NC} Версия macOS совместима (требуется 10.15+)"
+    
+    # Определение архитектуры
+    local ARCH=$(uname -m)
+    echo -e "${GREEN}[OK]${NC} Архитектура системы: $ARCH"
+    
+    return 0
+}
+
+# Запуск проверки macOS
+check_macos_version || exit 1
+
 # Функция для проверки команд
 check_command() {
     if ! command -v $1 &> /dev/null; then

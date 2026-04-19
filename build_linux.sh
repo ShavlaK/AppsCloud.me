@@ -23,6 +23,80 @@ cd "$SCRIPT_DIR"
 
 echo -e "${BLUE}[INFO]${NC} Рабочая директория: $SCRIPT_DIR"
 
+# ==========================================
+# ПРОВЕРКА ВЕРСИИ ОС
+# ==========================================
+check_os_version() {
+    echo -e "${YELLOW}[INFO]${NC} Проверка версии операционной системы..."
+    
+    local OS_NAME=""
+    local OS_VERSION=""
+    local MIN_VERSION=""
+    
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        OS_NAME=$NAME
+        OS_VERSION=$VERSION_ID
+        
+        case "$ID" in
+            ubuntu)
+                MIN_VERSION="20.04"
+                if (( $(echo "$OS_VERSION < $MIN_VERSION" | bc -l 2>/dev/null || echo 0) )); then
+                    echo -e "${RED}[ОШИБКА]${NC} Требуется Ubuntu $MIN_VERSION или выше. Найдена версия: $OS_VERSION"
+                    return 1
+                fi
+                ;;
+            debian)
+                MIN_VERSION="11"
+                if (( $(echo "$OS_VERSION < $MIN_VERSION" | bc -l 2>/dev/null || echo 0) )); then
+                    echo -e "${RED}[ОШИБКА]${NC} Требуется Debian $MIN_VERSION или выше. Найдена версия: $OS_VERSION"
+                    return 1
+                fi
+                ;;
+            fedora)
+                MIN_VERSION="38"
+                if (( $(echo "$OS_VERSION < $MIN_VERSION" | bc -l 2>/dev/null || echo 0) )); then
+                    echo -e "${RED}[ОШИБКА]${NC} Требуется Fedora $MIN_VERSION или выше. Найдена версия: $OS_VERSION"
+                    return 1
+                fi
+                ;;
+            rhel|centos|rocky|almalinux)
+                MIN_VERSION="8"
+                if (( $(echo "$OS_VERSION < $MIN_VERSION" | bc -l 2>/dev/null || echo 0) )); then
+                    echo -e "${RED}[ОШИБКА]${NC} Требуется RHEL/CentOS $MIN_VERSION или выше. Найдена версия: $OS_VERSION"
+                    return 1
+                fi
+                ;;
+            arch|manjaro)
+                # Arch Linux всегда использует последние версии
+                echo -e "${GREEN}[OK]${NC} Обнаружен Arch-based дистрибутив: $OS_NAME"
+                return 0
+                ;;
+            *)
+                echo -e "${YELLOW}[WARN]${NC} Непроверенный дистрибутив: $OS_NAME $OS_VERSION. Продолжаем с осторожностью..."
+                return 0
+                ;;
+        esac
+        
+        echo -e "${GREEN}[OK]${NC} Обнаружена ОС: $OS_NAME $OS_VERSION (требуется: $ID >= $MIN_VERSION)"
+        
+    elif [ -f /etc/redhat-release ]; then
+        OS_INFO=$(cat /etc/redhat-release)
+        echo -e "${GREEN}[OK]${NC} Обнаружена Red Hat-совместимая система: $OS_INFO"
+    else
+        echo -e "${YELLOW}[WARN]${NC} Не удалось определить версию ОС. Продолжаем..."
+    fi
+    
+    # Определение архитектуры
+    ARCH=$(uname -m)
+    echo -e "${GREEN}[OK]${NC} Архитектура системы: $ARCH"
+    
+    return 0
+}
+
+# Запуск проверки ОС
+check_os_version || exit 1
+
 # Функция для проверки команд
 check_command() {
     if ! command -v $1 &> /dev/null; then

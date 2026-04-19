@@ -1,6 +1,6 @@
 {
   "source_bot_token": "YOUR_SOURCE_BOT_TOKEN_HERE",
-  "channel_bot_token": "YOUR_CHANNEL_BOT_TOKEN_HERE",
+  "your_bot_token": "YOUR_CHANNEL_BOT_TOKEN_HERE",
   "channel_id": "@your_channel_username",
   "markup_percent": 15,
   "update_interval_hours": 1,

@@ -3,6 +3,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 
 Мощное решение для автоматического мониторинга и обновления прайс-листов в Telegram-каналах. Приложение парсит цены из источника, применяет наценку, сохраняет историю изменений в базу данных и публикует актуальные данные в ваш канал по расписанию. Включает веб-интерфейс для управления и генерации отчетов.
 
@@ -15,9 +16,12 @@
     *   Мониторинг статуса системы в реальном времени.
     *   Управление конфигурацией через браузер.
     *   Просмотр логов работы парсера.
-    *   Генерация отчетов (Excel/CSV) по истории цен.
-*   **REST API:** Полноценный API для интеграции с внешними системами.
+    *   Графики и аналитика: тренды цен, анализ по дням недели, волатильность.
+    *   Генерация отчетов (Excel/CSV/JSON) по истории цен.
+*   **REST API:** Полноценный API для интеграции с внешними системами (`/api/status`, `/api/config`, `/api/update`, `/api/report`, `/api/analytics`).
+*   **Планировщик задач:** APScheduler с поддержкой Cron-триггеров.
 *   **Кроссплатформенность:** Работает на Windows, macOS и Linux.
+*   **Docker поддержка:** Готовые Dockerfile и docker-compose.yml для контейнеризации.
 *   **Простая установка:** Скрипты для автоматической настройки окружения и сборки установочных файлов (.exe, .dmg, .deb).
 
 ---
@@ -26,18 +30,18 @@
 
 Вам не нужно вручную устанавливать Python или настраивать окружение. Используйте наши скрипты автоматической установки — они всё сделают за вас!
 
-### Для запуска приложения
+### Вариант 1: Запуск приложения
 
 Скопируйте и выполните **одну команду** в терминале:
 
 #### 🪟 Windows (PowerShell)
 ```powershell
-irm https://raw.githubusercontent.com/your-username/price-updater/main/run_project.bat -OutFile run_project.bat; .\run_project.bat
+irm https://raw.githubusercontent.com/ShavlaK/AppsCloud.me/main/run_project.bat -OutFile run_project.bat; .\run_project.bat
 ```
 
 #### 🍎 macOS / 🐧 Linux (Bash)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/run_project.sh -o run_project.sh && chmod +x run_project.sh && ./run_project.sh
+curl -fsSL https://raw.githubusercontent.com/ShavlaK/AppsCloud.me/main/run_project.sh -o run_project.sh && chmod +x run_project.sh && ./run_project.sh
 ```
 
 > **Что сделает скрипт:**
@@ -49,29 +53,62 @@ curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/ru
 
 ---
 
-### Для сборки установочного файла
+### Вариант 2: Сборка установочного файла
 
 Хотите создать `.exe` (Windows), `.dmg` (macOS) или `.deb`/`.tar.gz` (Linux) дистрибутив? Используйте скрипты сборщики. Они сами настройт всё необходимое.
 
 #### 🪟 Windows (PowerShell)
 ```powershell
-irm https://raw.githubusercontent.com/your-username/price-updater/main/build_windows.bat -OutFile build_windows.bat; .\build_windows.bat
+irm https://raw.githubusercontent.com/ShavlaK/AppsCloud.me/main/build_windows.bat -OutFile build_windows.bat; .\build_windows.bat
 ```
 
 #### 🍎 macOS (Bash)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/build_macos.sh -o build_macos.sh && chmod +x build_macos.sh && ./build_macos.sh
+curl -fsSL https://raw.githubusercontent.com/ShavlaK/AppsCloud.me/main/build_macos.sh -o build_macos.sh && chmod +x build_macos.sh && ./build_macos.sh
 ```
 
 #### 🐧 Linux (Bash)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/build_linux.sh -o build_linux.sh && chmod +x build_linux.sh && ./build_linux.sh
+curl -fsSL https://raw.githubusercontent.com/ShavlaK/AppsCloud.me/main/build_linux.sh -o build_linux.sh && chmod +x build_linux.sh && ./build_linux.sh
 ```
 
 > **Результат:** Готовый установочный файл появится в папке `dist_release`:
 > - **Windows:** `PriceUpdater_Windows.zip` с `.exe` файлом внутри
 > - **macOS:** `PriceUpdater.dmg` образ
 > - **Linux:** `.deb` пакет (для Debian/Ubuntu) и `tar.gz` архив (для остальных дистрибутивов)
+
+---
+
+### Вариант 3: Запуск через Docker
+
+Самый быстрый способ развернуть приложение:
+
+```bash
+# Клонировать репозиторий
+git clone https://github.com/ShavlaK/AppsCloud.me.git
+cd AppsCloud.me
+
+# Создать конфиг из примера
+cp config.json.example config.json
+# Отредактировать config.json (указать токены и channel_id)
+
+# Запустить через docker-compose
+docker-compose up -d
+```
+
+Веб-интерфейс будет доступен по адресу: `http://localhost:8080`
+
+**Полезные команды Docker:**
+```bash
+# Просмотр логов
+docker-compose logs -f
+
+# Остановка
+docker-compose down
+
+# Пересборка
+docker-compose up -d --build
+```
 
 ---
 
@@ -87,8 +124,8 @@ curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/bu
 
 1.  **Клонируйте репозиторий:**
     ```bash
-    git clone https://github.com/your-username/price-updater.git
-    cd price-updater
+    git clone https://github.com/ShavlaK/AppsCloud.me.git
+    cd AppsCloud.me
     ```
 
 2.  **Создайте виртуальное окружение и активируйте его:**
@@ -123,6 +160,12 @@ curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/bu
       "update_interval_hours": 1
     }
     ```
+    
+    Или используйте переменные окружения (создайте файл `.env` на основе `.env.example`):
+    ```bash
+    cp .env.example .env
+    # Отредактируйте .env, указав ваши токены
+    ```
 
 5.  **Запустите приложение:**
     ```bash
@@ -141,10 +184,34 @@ curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/bu
 *   **Linux:** Запустите `chmod +x build_linux.sh && ./build_linux.sh`
 
 Все скрипты автоматически:
-- Проверят и установят недостающие зависимости (Python, Git, системные пакеты)
+- Проверят версию ОС и совместимость
+- Проверят и установят недостающие зависимости (Python, Git, системные пакеты) только если их нет
 - Создут виртуальное окружение
 - Установят все необходимые библиотеки
 - Соберут бинарный файл и упаковщик (где применимо)
+
+---
+
+## 🧪 Разработка и тестирование
+
+### Установка pre-commit хуков
+Для автоматической проверки кода перед коммитом:
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Хуки будут автоматически проверять:
+- Форматирование кода (Black)
+- Сортировку импортов (isort)
+- Стиль кода (flake8)
+- Типизацию (mypy)
+- Концевые пробелы и переводы строк
+
+### Запуск тестов
+```bash
+pytest tests/
+```
 
 ---
 
@@ -154,29 +221,35 @@ curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/bu
 .
 ├── main.py              # Точка входа
 ├── config.json.example  # Пример конфигурации
+├── .env.example         # Пример переменных окружения
 ├── requirements.txt     # Зависимости Python
 ├── telegram_parser.py   # Логика парсинга источников
 ├── telegram_channel.py  # Публикация в канал
 ├── price_database.py    # Работа с SQLite
 ├── web_server.py        # FastAPI сервер и Dashboard
 ├── report_generator.py  # Генерация Excel/CSV отчетов
-├── static/              # CSS, JS для веба
+├── excel_parser.py      # Парсинг Excel файлов
+├── Dockerfile           # Docker образ
+├── docker-compose.yml   # Docker Compose конфигурация
 ├── templates/           # HTML шаблоны
-├── data/                # База данных и логи (игнорируется git)
+├── tests/               # Тесты (pytest)
+├── data/                # База данных (игнорируется git)
 ├── logs/                # Логи (игнорируется git)
 ├── reports/             # Отчёты (игнорируется git)
 ├── run_project.*        # Скрипты быстрого запуска
-└── build_*              # Скрипты сборки установщиков
+├── build_*              # Скрипты сборки установщиков
+└── .pre-commit-config.yaml  # Pre-commit хуки
 ```
 
 ---
 
 ## 🔒 Безопасность
 
-*   Токены ботов хранятся только локально в `config.json`.
-*   **Никогда не коммитьте `config.json` в репозиторий!** Используйте `config.json.example`.
+*   Токены ботов хранятся только локально в `config.json` или `.env`.
+*   **Никогда не коммитьте `config.json` или `.env` в репозиторий!** Используйте `config.json.example` и `.env.example`.
 *   Приложение не передает ваши токены третьим сторонам.
 *   Рекомендуется запускать приложение на выделенном сервере или локальной машине.
+*   Все чувствительные файлы добавлены в `.gitignore`.
 
 ## 📄 Лицензия
 
@@ -185,9 +258,11 @@ curl -fsSL https://raw.githubusercontent.com/your-username/price-updater/main/bu
 ## 🤝 Поддержка
 
 Если у вас возникли вопросы или проблемы:
-1.  Проверьте раздел [Issues](https://github.com/your-username/price-updater/issues).
+1.  Проверьте раздел [Issues](https://github.com/ShavlaK/AppsCloud.me/issues).
 2.  Убедитесь, что версия Python соответствует требованиям (3.9–3.12).
 3.  Проверьте логи в папке `logs/` или во вкладке "Логи" веб-интерфейса.
+4.  Убедитесь, что конфигурационный файл заполнен корректно.
 
 ---
+
 *Разработано для автоматизации рутинных задач в Telegram.*
