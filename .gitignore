@@ -1,40 +1,131 @@
-```
-# Dependencies
-.venv/
-venv/
+# ==========================================
+# PYTHON & DEPENDENCIES
+# ==========================================
 __pycache__/
-*.pyc
-.mypy_cache/
-.pytest_cache/
-
-# Build artifacts
+*.py[cod]
+*$py.class
+*.so
+.Python
 build/
+develop-eggs/
 dist/
-*.o
-*.obj
-*.out
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Environment
+# Virtual Environments
+venv/
+ENV/
+env/
+.venv/
+
+# Testing & Coverage
+.pytest_cache/
+.mypy_cache/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.coverage
+htmlcov/
+
+# ==========================================
+# ENVIRONMENT & SECRETS
+# ==========================================
 .env
 .env.local
-*.env.*
+.env.*.local
+*.env
+config.json
+*.db
+*.sqlite3
 
-# Editors
-.vscode/
-.idea/
+# ==========================================
+# LOGS & TEMPORARY FILES
+# ==========================================
+*.log
+logs/
+*.tmp
+*.temp
 *.swp
 *.swo
-*.tmp
+*~
 
-# Logs
-*.log
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# OS
-.DS_Store
+# ==========================================
+# IDE & EDITORS
+# ==========================================
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
 Thumbs.db
-```
+
+# ==========================================
+# OS GENERATED FILES
+# ==========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+DocumentRevisions-V100/
+.fseventsd/
+.Spotlight-V100/
+.TemporaryItems/
+.Trashes/
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+# ==========================================
+# BUILD ARTIFACTS (PyInstaller, etc.)
+# ==========================================
+bin/
+exe/
+*.manifest
+*.spec.bak
+*.o
+*.obj
+*.a
+*.out
+
+# Archives (to prevent committing builds)
+*.zip
+*.tar.gz
+*.rar
+*.deb
+*.dmg
+*.rpm
+*.AppImage
+*.cab
+*.arj
+*.lz
+*.lzo
+*.zst
+*.7z

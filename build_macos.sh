@@ -21,9 +21,29 @@ NC='\033[0m' # No Color
 
 # Переход в директорию проекта
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR"
+
+# Создаем временную директорию для сборки
+TEMP_DIR=$(mktemp -d)
+REPO_URL="https://github.com/ShavlaK/AppsCloud.me.git"
+PROJECT_DIR="price_updater_build"
 
 echo -e "${BLUE}[INFO]${NC} Рабочая директория: $SCRIPT_DIR"
+echo -e "${BLUE}[INFO]${NC} Временная директория для сборки: $TEMP_DIR"
+
+# ==========================================
+# КЛОНИРОВАНИЕ РЕПОЗИТОРИЯ
+# ==========================================
+echo ""
+echo "════════════════════════════════════════"
+echo "  ШАГ 0: КЛОНИРОВАНИЕ РЕПОЗИТОРИЯ"
+echo "════════════════════════════════════════"
+
+cd "$TEMP_DIR"
+echo -e "${BLUE}[INFO]${NC} Клонирование репозитория..."
+git clone "$REPO_URL" "$PROJECT_DIR"
+cd "$PROJECT_DIR"
+
+echo -e "${GREEN}[OK]${NC} Репозиторий успешно клонирован."
 
 # ==========================================
 # ПРОВЕРКА ВЕРСИИ MACOS
