@@ -238,8 +238,8 @@ setup_python() {
     echo -e "${YELLOW}[INFO]${NC} Установка Python 3.11..."
     
     if [ "$PKG_MANAGER" = "apt" ]; then
-        sudo apt install -y software-properties-common
-        sudo add-apt-repository -y ppa:deadsnakes/ppa
+        sudo apt install -y software-properties-common || true
+        sudo add-apt-repository -y ppa:deadsnakes/ppa || true
         sudo apt update
         sudo apt install -y python3.11 python3.11-venv python3.11-dev
         # Обновляем альтернативы для использования python3.11 по умолчанию в этом скрипте
@@ -264,7 +264,14 @@ setup_python() {
         fi
     fi
     
-    echo -e "${GREEN}[OK]${NC} Python установлен."
+    # Проверка что PYTHON_CMD существует и работает
+    if [ -n "$PYTHON_CMD" ] && [ -f "$PYTHON_CMD" ]; then
+        echo -e "${GREEN}[OK]${NC} Python 3.11 установлен и найден по пути: $PYTHON_CMD"
+        $PYTHON_CMD --version
+    else
+        echo -e "${YELLOW}[WARN]${NC} Не удалось найти явный путь к Python 3.11, пробуем python3"
+        export PYTHON_CMD="python3"
+    fi
 }
 
 # Функция определения архитектуры
@@ -318,13 +325,18 @@ rm -rf venv build dist dist_release *.spec __pycache__ deb_package
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
-# Создание виртуального окружения
+# Создание виртуального окружения с использованием правильной версии Python
 echo -e "${GREEN}[INFO]${NC} Создание виртуального окружения..."
-# Используем PYTHON_CMD если он установлен, иначе python3
-if [ -n "$PYTHON_CMD" ]; then
-    $PYTHON_CMD -m venv venv
+if [ -n "$PYTHON_CMD" ] && [ -f "$PYTHON_CMD" ]; then
+    $PYTHON_CMD -m venv venv || {
+        echo -e "${RED}[ОШИБКА]${NC} Не удалось создать виртуальное окружение с $PYTHON_CMD"
+        exit 1
+    }
 else
-    python3 -m venv venv
+    python3 -m venv venv || {
+        echo -e "${RED}[ОШИБКА]${NC} Не удалось создать виртуальное окружение"
+        exit 1
+    }
 fi
 
 # Активация виртуального окружения

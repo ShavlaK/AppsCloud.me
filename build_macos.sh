@@ -122,17 +122,29 @@ setup_python() {
     fi
     
     echo -e "${YELLOW}[INFO]${NC} Установка Python 3.11 через Homebrew..."
-    brew install $target_version
+    brew install $target_version || true
     
     # Принудительное переключение на Python 3.11
+    echo -e "${YELLOW}[INFO]${NC} Принудительное переключение на Python 3.11..."
     brew unlink python@3.11 2>/dev/null || true
-    brew link --force python@3.11
+    brew link --force python@3.11 || true
     
-    echo -e "${GREEN}[OK]${NC} Python 3.11 установлен."
+    # Поиск пути к Python 3.11
+    PYTHON_311_PATH=$(brew --prefix python@3.11)/bin/python3.11
+    
+    if [ ! -f "$PYTHON_311_PATH" ]; then
+        echo -e "${RED}[ОШИБКА]${NC} Не удалось найти исполняемый файл Python 3.11"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}[OK]${NC} Python 3.11 установлен и найден по пути: $PYTHON_311_PATH"
     
     # Обновление PATH для использования Python 3.11
-    export PATH="/opt/homebrew/opt/python@3.11/bin:$PATH"
+    export PATH="$(dirname $PYTHON_311_PATH):$PATH"
     hash -r 2>/dev/null || true
+    
+    # Проверка версии
+    $PYTHON_311_PATH --version
 }
 
 # Функция установки Git
@@ -199,9 +211,18 @@ rm -rf venv build dist dist_release *.spec __pycache__
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
-# Создание виртуального окружения
+# Создание виртуального окружения с использованием Python 3.11
 echo -e "${GREEN}[INFO]${NC} Создание виртуального окружения..."
-python3 -m venv venv
+python3 -m venv venv || {
+    echo -e "${RED}[ОШИБКА]${NC} Не удалось создать виртуальное окружение с python3"
+    # Попытка использовать явный путь к Python 3.11
+    if [ -f "$PYTHON_311_PATH" ]; then
+        echo -e "${YELLOW}[INFO]${NC} Попытка создать окружение с Python 3.11 напрямую..."
+        $PYTHON_311_PATH -m venv venv || exit 1
+    else
+        exit 1
+    fi
+}
 
 # Активация виртуального окружения
 echo -e "${GREEN}[INFO]${NC} Активация виртуального окружения..."
