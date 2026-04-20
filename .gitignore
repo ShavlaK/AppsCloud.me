@@ -1,1 +1,42 @@
-Nothing should be ignored based on the provided file changes. The modified files (`build_linux.sh` and `build_macos.sh`) are shell script source files that should be tracked in version control.
+```gitignore
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Dependencies
+pip-tools/
+*.egg-info/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+*.env.*
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Coverage reports
+.coverage
+coverage/
+htmlcov/
+
+# Distribution / packaging
+dist/
+build/
+*.egg
+*.tar.gz
+*.whl
+```
