@@ -123,9 +123,16 @@ setup_python() {
     
     echo -e "${YELLOW}[INFO]${NC} Установка Python 3.11 через Homebrew..."
     brew install $target_version
-    brew link --overwrite $target_version 2>/dev/null || true
+    
+    # Принудительное переключение на Python 3.11
+    brew unlink python@3.11 2>/dev/null || true
+    brew link --force python@3.11
     
     echo -e "${GREEN}[OK]${NC} Python 3.11 установлен."
+    
+    # Обновление PATH для использования Python 3.11
+    export PATH="/opt/homebrew/opt/python@3.11/bin:$PATH"
+    hash -r 2>/dev/null || true
 }
 
 # Функция установки Git
@@ -203,6 +210,19 @@ source venv/bin/activate
 # Обновление pip
 echo -e "${GREEN}[INFO]${NC} Обновление pip..."
 pip install --upgrade pip --quiet
+
+# Проверка версии Python в виртуальном окружении
+VENV_PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
+echo -e "${GREEN}[INFO]${NC} Версия Python в виртуальном окружении: $VENV_PYTHON_VERSION"
+
+# Проверка на совместимость
+MAJOR=$(echo $VENV_PYTHON_VERSION | cut -d'.' -f1)
+MINOR=$(echo $VENV_PYTHON_VERSION | cut -d'.' -f2)
+if [ "$MAJOR" -ne 3 ] || [ "$MINOR" -lt 9 ] || [ "$MINOR" -gt 12 ]; then
+    echo -e "${RED}[ОШИБКА]${NC} Версия Python в виртуальном окружении ($VENV_PYTHON_VERSION) не поддерживается!"
+    echo -e "${YELLOW}[INFO]${NC} Требуется Python 3.9-3.12 для совместимости с pydantic-core."
+    exit 1
+fi
 
 echo ""
 echo -e "${BLUE}════════════════════════════════════════${NC}"

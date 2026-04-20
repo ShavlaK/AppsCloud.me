@@ -242,11 +242,26 @@ setup_python() {
         sudo add-apt-repository -y ppa:deadsnakes/ppa
         sudo apt update
         sudo apt install -y python3.11 python3.11-venv python3.11-dev
+        # Обновляем альтернативы для использования python3.11 по умолчанию в этом скрипте
         update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 2>/dev/null || true
+        # Экспортируем путь к python3.11 для текущего сеанса
+        export PYTHON_CMD="/usr/bin/python3.11"
     elif [ "$PKG_MANAGER" = "yum" ] || [ "$PKG_MANAGER" = "dnf" ]; then
         $INSTALL_CMD python3.11 python3.11-pip python3.11-devel
+        export PYTHON_CMD="/usr/bin/python3.11"
     elif [ "$PKG_MANAGER" = "pacman" ]; then
         $INSTALL_CMD python
+        # Arch всегда имеет последнюю версию, проверяем её
+        PYTHON_VERSION=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1,2)
+        MAJOR=$(echo $PYTHON_VERSION | cut -d'.' -f1)
+        MINOR=$(echo $PYTHON_VERSION | cut -d'.' -f2)
+        if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -ge 9 ] && [ "$MINOR" -le 12 ]; then
+            echo -e "${GREEN}[OK]${NC} Python $PYTHON_VERSION подходит."
+            export PYTHON_CMD="/usr/bin/python3"
+        else
+            echo -e "${RED}[ОШИБКА]${NC} Версия Python $PYTHON_VERSION не поддерживается на Arch Linux."
+            exit 1
+        fi
     fi
     
     echo -e "${GREEN}[OK]${NC} Python установлен."
@@ -305,7 +320,12 @@ find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
 # Создание виртуального окружения
 echo -e "${GREEN}[INFO]${NC} Создание виртуального окружения..."
-python3 -m venv venv
+# Используем PYTHON_CMD если он установлен, иначе python3
+if [ -n "$PYTHON_CMD" ]; then
+    $PYTHON_CMD -m venv venv
+else
+    python3 -m venv venv
+fi
 
 # Активация виртуального окружения
 echo -e "${GREEN}[INFO]${NC} Активация виртуального окружения..."
@@ -314,6 +334,19 @@ source venv/bin/activate
 # Обновление pip
 echo -e "${GREEN}[INFO]${NC} Обновление pip..."
 pip install --upgrade pip --quiet
+
+# Проверка версии Python в виртуальном окружении
+VENV_PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
+echo -e "${GREEN}[INFO]${NC} Версия Python в виртуальном окружении: $VENV_PYTHON_VERSION"
+
+# Проверка на совместимость
+MAJOR=$(echo $VENV_PYTHON_VERSION | cut -d'.' -f1)
+MINOR=$(echo $VENV_PYTHON_VERSION | cut -d'.' -f2)
+if [ "$MAJOR" -ne 3 ] || [ "$MINOR" -lt 9 ] || [ "$MINOR" -gt 12 ]; then
+    echo -e "${RED}[ОШИБКА]${NC} Версия Python в виртуальном окружении ($VENV_PYTHON_VERSION) не поддерживается!"
+    echo -e "${YELLOW}[INFO]${NC} Требуется Python 3.9-3.12 для совместимости с pydantic-core."
+    exit 1
+fi
 
 echo ""
 echo -e "${BLUE}════════════════════════════════════════${NC}"

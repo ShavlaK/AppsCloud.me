@@ -1,1 +1,1 @@
-Nothing should be ignored since only source code files (.py) were modified and no build artifacts, dependencies, or temporary files were detected in the changes.
+Nothing should be ignored based on the provided file changes. The modified files (`build_linux.sh` and `build_macos.sh`) are shell script source files that should be tracked in version control.
