@@ -408,23 +408,23 @@ class ReportGenerator:
 
     def generate_price_trend_report(self, product_name: Optional[str] = None, days: int = 30) -> Dict[str, Any]:
         """Генерирует отчет о динамике цен за последние N дней."""
-        conn = self.db._get_connection()
-        try:
+        with self.db.get_connection() as conn:
             cursor = conn.cursor()
-            date_from = (datetime.now() - timedelta(days=days)).isoformat()
+            date_from = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
             
             query = """
-                SELECT product_name, price, timestamp 
-                FROM price_history 
-                WHERE timestamp > ? 
+                SELECT pi.name as product_name, pi.final_price as price, ps.snapshot_date || ' ' || ps.snapshot_time as timestamp 
+                FROM price_items pi
+                JOIN price_snapshots ps ON pi.snapshot_id = ps.id
+                WHERE ps.snapshot_date >= ?
             """
-            params = [date_from]
+            params = [date_from[:10]]
             
             if product_name:
-                query += " AND product_name = ?"
+                query += " AND pi.name = ?"
                 params.append(product_name)
             
-            query += " ORDER BY timestamp ASC"
+            query += " ORDER BY ps.snapshot_date, ps.snapshot_time ASC"
             
             cursor.execute(query, params)
             rows = cursor.fetchall()
@@ -442,28 +442,23 @@ class ReportGenerator:
                 'data': dict(trends),
                 'period_days': days
             }
-        except Exception as e:
-            logger.error(f"Error generating trend report: {e}")
-            return {'success': False, 'error': str(e)}
-        finally:
-            conn.close()
 
     def generate_day_of_week_analysis(self, product_name: Optional[str] = None, weeks: int = 4) -> Dict[str, Any]:
         """Анализирует среднюю цену по дням недели за последние N недель."""
-        conn = self.db._get_connection()
-        try:
+        with self.db.get_connection() as conn:
             cursor = conn.cursor()
-            date_from = (datetime.now() - timedelta(weeks=weeks)).isoformat()
+            date_from = (datetime.now() - timedelta(weeks=weeks)).strftime("%Y-%m-%d")
             
             query = """
-                SELECT product_name, price, timestamp 
-                FROM price_history 
-                WHERE timestamp > ? 
+                SELECT pi.name as product_name, pi.final_price as price, ps.snapshot_date || ' ' || ps.snapshot_time as timestamp 
+                FROM price_items pi
+                JOIN price_snapshots ps ON pi.snapshot_id = ps.id
+                WHERE ps.snapshot_date >= ?
             """
             params = [date_from]
             
             if product_name:
-                query += " AND product_name = ?"
+                query += " AND pi.name = ?"
                 params.append(product_name)
             
             cursor.execute(query, params)
@@ -472,7 +467,7 @@ class ReportGenerator:
             # Агрегация по дням недели (0=Пн, 6=Вс)
             day_prices = defaultdict(list)
             for row in rows:
-                dt = datetime.fromisoformat(row['timestamp'])
+                dt = datetime.strptime(row['timestamp'], "%Y-%m-%d %H:%M:%S")
                 day_idx = dt.weekday()
                 day_prices[day_idx].append(row['price'])
             
@@ -495,28 +490,23 @@ class ReportGenerator:
                 'success': True,
                 'data': result
             }
-        except Exception as e:
-            logger.error(f"Error generating day of week analysis: {e}")
-            return {'success': False, 'error': str(e)}
-        finally:
-            conn.close()
 
     def generate_monthly_volatility(self, product_name: Optional[str] = None, months: int = 3) -> Dict[str, Any]:
         """Анализирует волатильность и изменения цен по месяцам."""
-        conn = self.db._get_connection()
-        try:
+        with self.db.get_connection() as conn:
             cursor = conn.cursor()
-            date_from = (datetime.now() - timedelta(days=months*30)).isoformat()
+            date_from = (datetime.now() - timedelta(days=months*30)).strftime("%Y-%m-%d")
             
             query = """
-                SELECT product_name, price, timestamp 
-                FROM price_history 
-                WHERE timestamp > ? 
+                SELECT pi.name as product_name, pi.final_price as price, ps.snapshot_date || ' ' || ps.snapshot_time as timestamp 
+                FROM price_items pi
+                JOIN price_snapshots ps ON pi.snapshot_id = ps.id
+                WHERE ps.snapshot_date >= ?
             """
             params = [date_from]
             
             if product_name:
-                query += " AND product_name = ?"
+                query += " AND pi.name = ?"
                 params.append(product_name)
             
             cursor.execute(query, params)
@@ -525,7 +515,7 @@ class ReportGenerator:
             # Группировка по месяцам (YYYY-MM)
             month_data = defaultdict(list)
             for row in rows:
-                dt = datetime.fromisoformat(row['timestamp'])
+                dt = datetime.strptime(row['timestamp'], "%Y-%m-%d %H:%M:%S")
                 month_key = dt.strftime("%Y-%m")
                 month_data[month_key].append(row['price'])
             
@@ -556,11 +546,6 @@ class ReportGenerator:
                 'success': True,
                 'data': result
             }
-        except Exception as e:
-            logger.error(f"Error generating monthly volatility report: {e}")
-            return {'success': False, 'error': str(e)}
-        finally:
-            conn.close()
 
     def get_all_stats(self, product_name: Optional[str] = None) -> Dict[str, Any]:
         """Получает всю статистику одним запросом для фронтенда."""

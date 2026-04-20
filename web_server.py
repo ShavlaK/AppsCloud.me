@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
@@ -319,8 +319,7 @@ async def process_uploaded_excel(data: ManualUpdateRequest):
         markup = price_updater.config.get("price_markup", 0)
         prices = parser.apply_markup(prices, markup)
 
-        # Сохраняем
-        price_updater.storage.save_prices(prices)
+        # Сохраняем в базу данных SQLite для истории
         snapshot_id = price_updater.db.save_snapshot(prices, markup)
         logger.info(f"Снимок #{snapshot_id} из Excel: {len(prices)} позиций")
 

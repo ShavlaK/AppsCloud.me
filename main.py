@@ -134,8 +134,7 @@ class PriceUpdater:
             prices = self.parser.apply_markup(prices, markup)
             logger.info(f"Наценка применена: {markup}")
 
-            # Сохраняем в оба хранилища (JSON для совместимости, SQLite для истории)
-            self.storage.save_prices(prices)
+            # Сохраняем в базу данных SQLite для истории
             snapshot_id = self.db.save_snapshot(prices, markup)
             logger.info(f"Снимок #{snapshot_id} сохранён в SQLite")
 
